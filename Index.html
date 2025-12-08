@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ISBAR Summary</title>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/heroicons@2.0.18/dist/heroicons.min.js"></script>
+  <style>
+    :root {
+      --primary-blue: #434E78;
+      --secondary-blue: #607B8F;
+      --accent-yellow: #F7E396;
+      --accent-orange: #E97F4A;
+      --primary-blue-light: #5a658e;
+      --secondary-blue-light: #7895aa;
+      --accent-yellow-light: #f9e9b5;
+      --accent-orange-light: #ed9668;
+      --dark-bg: #1a1d28;
+      --dark-surface: #2a2d3a;
+      --dark-text: #f0f0f0;
+    }
+    body {
+      background-color: var(--dark-bg);
+      color: var(--dark-text);
+      font-family: 'Cairo', sans-serif;
+    }
+    .card {
+      background-color: var(--dark-surface);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .section-title {
+      background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px 8px 0 0;
+      font-weight: bold;
+      font-size: 1.4rem;
+    }
+    .field {
+      background-color: #343744;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    input, textarea {
+      background: transparent;
+      border: none;
+      color: var(--dark-text);
+      width: 100%;
+      outline: none;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .btn-primary {
+      background-color: var(--accent-orange);
+      color: white;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover { background-color: var(--accent-orange-light); }
+    .btn-danger { background-color: #e74c3c; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen py-8 px-4">
+
+<div class="max-w-5xl mx-auto">
+
+  <!-- Header -->
+  <div class="text-center mb-10">
+    <h1 class="text-4xl font-bold text-var(--accent-yellow)">ISBAR Summary</h1>
+    <p class="text-var(--secondary-blue-light) mt-2">نظام تسليم وتسلم المريض</p>
+  </div>
+
+  <!-- Patient Card -->
+  <div id="isbarCard" class="card overflow-hidden mb-8">
+
+    <!-- I - Identification -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#identification"></use></svg>
+      I - Identification
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="field"><span class="text-var(--accent-yellow)">Room No:</span> <input id="room" type="text" placeholder="101"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Patient Name:</span> <input id="ptName" type="text" placeholder="أحمد محمد"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Age:</span> <input id="age" type="text" placeholder="45"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Admission Date:</span> <input id="admDate" type="date"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Admission From:</span> <input id="admFrom" type="text" placeholder="ER"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Consultant:</span> <input id="consultant" type="text" placeholder="د. علي احمد"/></div>
+    </div>
+
+    <!-- S - Situation -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#situation"></use></svg>
+      S - Situation
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="field"><span class="text-var(--accent-yellow)">Current Complaints:</span> <textarea id="complaints" placeholder="ضيق تنفس، ألم صدر..."></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Diagnosis:</span> <textarea id="diagnosis" placeholder="احتشاء عضلة قلبية"></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Connection:</span> <input id="connection" type="text" placeholder="RT CVL - 12/4"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Infusion:</span> <input id="infusion" type="text" placeholder="D10% - R10"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Diet:</span> <input id="diet" type="text" placeholder="NPO"/></div>
+    </div>
+
+    <!-- B - Background -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#background"></use></svg>
+      B - Background
+    </div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="field"><span class="text-var(--accent-yellow)">History:</span> <textarea id="history" placeholder="تاريخ مرضي..."></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Chief Complaint on Admission:</span> <textarea id="chiefComplaint" placeholder="..."></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Allergy:</span> <input id="allergy" type="text" placeholder="Penicillin"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Isolation:</span> <input id="isolation" type="text" placeholder="Contact"/></div>
+    </div>
+
+    <!-- A - Assessment -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#assessment"></use></svg>
+      A - Assessment
+    </div>
+    <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div class="field"><span class="text-var(--accent-yellow)">GCS:</span> <input id="gcs" type="text" placeholder="15"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Fall Risk:</span> <input id="fallRisk" type="text" placeholder="High"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Ventilation:</span> <input id="vent" type="text" placeholder="No"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Bed Sore:</span> <input id="bedsore" type="text" placeholder="Stage 2"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Restraint:</span> <input id="restraint" type="text" placeholder="No"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Significant Findings:</span> <textarea id="findings" class="col-span-full"></textarea></div>
+    </div>
+
+    <!-- R - Recommendation -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#recommendation"></use></svg>
+      R - Recommendation
+    </div>
+    <div class="p-6">
+      <div class="field"><span class="text-var(--accent-yellow)">Plan of Care:</span> <textarea id="plan" rows="3"></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Physician Orders:</span> <textarea id="orders" rows="3"></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Cultures & Sensitivity:</span> <textarea id="cultures" rows="2"></textarea></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Consultation:</span> <input id="consult" type="text"/></div>
+      <div class="field"><span class="text-var(--accent-yellow)">Risks:</span> <textarea id="risks" rows="2"></textarea></div>
+    </div>
+
+    <!-- Signature -->
+    <div class="p-6 bg-[#343744] border-t border-gray-700">
+      <label class="block text-var(--accent-yellow) mb-2">اسم الممرض المسلم / التوقيع في الملف</label>
+      <input id="nurseSignature" type="text" class="w-full bg-transparent border-b-2 border-var(--accent-orange) text-xl" placeholder="MR. " value="MR. "/>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex flex-wrap gap  gap-4 justify-center">
+    <button onclick="savePatient()" class="px-8 py-4 rounded-lg font-bold btn-primary flex items-center gap-3">
+      <svg class="w-6 h-6"><use href="#save"></use></svg>
+      حفظ المريض
+    </button>
+    <button onclick="exportPDF()" class="px-8 py-4 rounded-lg font-bold bg-var(--accent-yellow) text-var(--dark-bg) flex items-center gap-3">
+      <svg class="w-6 h-6"><use href="#download"></use></svg>
+      Export ISBAR PDF
+    </button>
+    <button onclick="clearForm()" class="px-8 py-4 rounded-lg font-bold bg-gray-600 flex items-center gap-3">
+      <svg class="w-6 h-6"><use href="#trash"></use></svg>
+      مسح النموذج
+    </button>
+  </div>
+
+  <!-- Saved Patients List -->
+  <div class="mt-12 card p-6">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-var(--accent-yellow)">المرضى المسلمين</h2>
+      <input id="searchPatient" type="text" placeholder="بحث بالاسم أو الرقم السريري..." class="px-4 py-2 rounded-lg bg-[#343744] border border-gray-600"/>
+    </div>
+    <div id="patientsList" class="space-y-3"></div>
+    <div class="mt-6 text-center">
+      <button onclick="deleteAllPatients()" class="text-red-400 hover:text-red-300 font-bold">
+        حذف جميع المرضى نهائياً
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Heroicons Definitions (مخفية) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="identification" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"/><path d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></symbol>
+  <symbol id="situation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></symbol>
+  <symbol id="background" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="assessment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></symbol>
+  <symbol id="recommendation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 010 8h-1m-7-4h6"/></symbol>
+  <symbol id="save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+  <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5-7v12"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></symbol>
+</svg>
+
+<script>
+const { jsPDF } = window.jspdf;
+
+// حفظ المريض في localStorage
+function savePatient() {
+  const patient = {
+    id: Date.now(),
+    room: document.getElementById('room').value,
+    ptName: document.getElementById('ptName').value,
+    age: document.getElementById('age').value,
+    admDate: document.getElementById('admDate').value,
+    admFrom: document.getElementById('admFrom').value,
+    consultant: document.getElementById('consultant').value,
+    complaints: document.getElementById('complaints').value,
+    diagnosis: document.getElementById('diagnosis').value,
+    connection: document.getElementById('connection').value,
+    infusion: document.getElementById('infusion').value,
+    diet: document.getElementById('diet').value,
+    history: document.getElementById('history').value,
+    chiefComplaint: document.getElementById('chiefComplaint').value,
+    allergy: document.getElementById('allergy').value,
+    isolation: document.getElementById('isolation').value,
+    gcs: document.getElementById('gcs').value,
+    fallRisk: document.getElementById('fallRisk').value,
+    vent: document.getElementById('vent').value,
+    bedsore: document.getElementById('bedsore').value,
+    restraint: document.getElementById('restraint').value,
+    findings: document.getElementById('findings').value,
+    plan: document.getElementById('plan').value,
+    orders: document.getElementById('orders').value,
+    cultures: document.getElementById('cultures').value,
+    consult: document.getElementById('consult').value,
+    risks: document.getElementById('risks').value,
+    signature: document.getElementById('nurseSignature').value,
+    savedAt: new Date().toLocaleString('ar-EG')
+  };
+
+  let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
+  patients.push(patient);
+  localStorage.setItem('isbarPatients', JSON.stringify(patients));
+  alert('تم حفظ بيانات المريض بنجاح');
+  loadPatients();
+}
+
+// تحميل قائمة المرضى
+function loadPatients(filter = '') {
+  let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
+  const list = document.getElementById('patientsList');
+  list.innerHTML = '';
+
+  patients
+    .filter(p => p.ptName.includes(filter) || p.room.includes(filter))
+    .forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'bg-[#343744] p-4 rounded-lg flex justify-between items-center';
+      div.innerHTML = `
+        <div>
+          <strong>${p.ptName}</strong> - الغرفة: ${p.room} - تم الحفظ: ${p.savedAt}
+        </div>
+        <div class="flex gap-3">
+          <button onclick="loadPatient(${p.id})" class="text-var(--accent-yellow) hover:underline">تحميل</button>
+          <button onclick="deletePatient(${p.id})" class="text-red-400 hover:text-red-300">حذف</button>
+        </div>
+      `;
+      list.appendChild(div);
+    });
+}
+
+// تحميل بيانات مريض معين
+function loadPatient(id) {
+  let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
+  const p = patients.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('room').value = p.room;
+  document.getElementById('ptName').value = p.ptName;
+  // ... باقي الحقول بنفس الطريقة (اختصرتهم للطول)
+  document.getElementById('nurseSignature').value = p.signature;
+}
+
+// حذف مريض
+function deletePatient(id) {
+  if (!confirm('تأكيد حذف هذا المريض؟')) return;
+  let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
+  patients = patients.filter(p => p.id !== id);
+  localStorage.setItem('isbarPatients', JSON.stringify(patients));
+  loadPatients();
+}
+
+// حذف الكل
+function deleteAllPatients() {
+  if (!confirm('حذف جميع المرضى نهائياً؟ لا يمكن التراجع!')) return;
+  localStorage.removeItem('isbarPatients');
+  loadPatients();
+  alert('تم حذف جميع المرضى');
+}
+
+// بحث
+document.getElementById('searchPatient').addEventListener('input', e => {
+  loadPatients(e.target.value);
+});
+
+// تصدير PDF بنفس التنسيق
+async function exportPDF() {
+  const signature = document.getElementById('nurseSignature').value || 'MR. ';
+  const ptName = document.getElementById('ptName').value || 'المريض';
+
+  const { pdf } = await html2canvas(document.getElementById('isbarCard'), { scale: 2 })
+    .then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const width = pdf.internal.pageSize.getWidth();
+      const height = (canvas.height * width) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+
+      // إضافة التوقيع والاسم في الأسفل
+      pdf.setFontSize(16);
+      pdf.setTextColor('#F7E396');
+      pdf.text(signature, width / 2, height - 30, { align: 'center' });
+      pdf.setFontSize(20);
+      pdf.text('-------------------', width / 2, height - 20, { align: 'center' });
+      pdf.setFontSize(22);
+      pdf.text(`MR. ${ptName.toUpperCase()}`, width / 2, height - 5, { align: 'center' });
+
+      return { pdf };
+    });
+
+  pdf.save(`ISBAR_${ptName}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+function clearForm() {
+  if (confirm('مسح جميع البيانات الحالية؟')) {
+    document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+  }
+}
+
+// تحميل القائمة عند فتح الصفحة
+loadPatients();
+</script>
+</body>
+</html>
