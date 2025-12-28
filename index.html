@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" id="htmlRoot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ISBAR Summary</title>
+  <title>ISBAR Summary - نظام تسليم وتسلم المريض</title>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/heroicons@2.0.18/dist/heroicons.min.js"></script>
   <style>
@@ -26,6 +26,7 @@
       background-color: var(--dark-bg);
       color: var(--dark-text);
       font-family: 'Cairo', sans-serif;
+      transition: all 0.3s ease;
     }
     .card {
       background-color: var(--dark-surface);
@@ -49,32 +50,121 @@
       align-items: center;
       gap: 12px;
     }
-    input, textarea {
+    input, textarea, select {
       background: transparent;
       border: none;
       color: var(--dark-text);
       width: 100%;
       outline: none;
+      font-family: 'Cairo', sans-serif;
     }
-    textarea { min-height: 80px; resize: vertical; }
+    textarea { 
+      min-height: 80px; 
+      resize: vertical; 
+      overflow-y: auto;
+    }
     .btn-primary {
       background-color: var(--accent-orange);
       color: white;
       transition: all 0.3s;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
     }
-    .btn-primary:hover { background-color: var(--accent-orange-light); }
-    .btn-danger { background-color: #e74c3c; }
+    .btn-primary:hover { 
+      background-color: var(--accent-orange-light); 
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background-color: var(--secondary-blue);
+      color: white;
+      transition: all 0.3s;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { 
+      background-color: var(--secondary-blue-light); 
+    }
+    .btn-danger { 
+      background-color: #e74c3c; 
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-danger:hover { 
+      background-color: #c0392b; 
+    }
+    .language-switch {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+    }
+    .lang-btn {
+      background: var(--dark-surface);
+      color: var(--dark-text);
+      border: 1px solid var(--secondary-blue);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .lang-btn.active {
+      background: var(--secondary-blue);
+      color: white;
+    }
+    .medication-item {
+      background: #343744;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--accent-orange);
+    }
+    .export-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    .language-rtl {
+      direction: rtl;
+      text-align: right;
+    }
+    .language-ltr {
+      direction: ltr;
+      text-align: left;
+    }
+    .input-large {
+      min-height: 100px;
+    }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="min-h-screen py-8 px-4">
 
-<div class="max-w-5xl mx-auto">
+<!-- Language Switcher -->
+<div class="language-switch">
+  <button id="langAr" class="lang-btn active" onclick="switchLanguage('ar')">العربية</button>
+  <button id="langEn" class="lang-btn" onclick="switchLanguage('en')">English</button>
+</div>
+
+<div class="max-w-6xl mx-auto">
 
   <!-- Header -->
   <div class="text-center mb-10">
-    <h1 class="text-4xl font-bold text-var(--accent-yellow)">ISBAR Summary</h1>
-    <p class="text-var(--secondary-blue-light) mt-2">نظام تسليم وتسلم المريض</p>
+    <h1 id="pageTitle" class="text-4xl font-bold text-var(--accent-yellow)">ISBAR Summary</h1>
+    <p id="pageSubtitle" class="text-var(--secondary-blue-light) mt-2">نظام تسليم وتسلم المريض</p>
   </div>
 
   <!-- Patient Card -->
@@ -83,123 +173,553 @@
     <!-- I - Identification -->
     <div class="section-title flex items-center gap-3">
       <svg class="w-7 h-7"><use href="#identification"></use></svg>
-      I - Identification
+      <span id="sectionIdentification">I - Identification</span>
     </div>
     <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="field"><span class="text-var(--accent-yellow)">Room No:</span> <input id="room" type="text" placeholder="101"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Patient Name:</span> <input id="ptName" type="text" placeholder="أحمد محمد"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Age:</span> <input id="age" type="text" placeholder="45"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Admission Date:</span> <input id="admDate" type="date"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Admission From:</span> <input id="admFrom" type="text" placeholder="ER"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Consultant:</span> <input id="consultant" type="text" placeholder="د. علي احمد"/></div>
+      <div class="field">
+        <span id="labelRoom" class="text-var(--accent-yellow)">Room No:</span> 
+        <input id="room" type="text" placeholder="101"/>
+      </div>
+      <div class="field">
+        <span id="labelPtName" class="text-var(--accent-yellow)">Patient Name:</span> 
+        <input id="ptName" type="text" placeholder="أحمد محمد"/>
+      </div>
+      <div class="field">
+        <span id="labelAge" class="text-var(--accent-yellow)">Age:</span> 
+        <input id="age" type="text" placeholder="45"/>
+      </div>
+      <div class="field">
+        <span id="labelAdmDate" class="text-var(--accent-yellow)">Admission Date:</span> 
+        <input id="admDate" type="date"/>
+      </div>
+      <div class="field">
+        <span id="labelAdmFrom" class="text-var(--accent-yellow)">Admission From:</span> 
+        <input id="admFrom" type="text" placeholder="ER"/>
+      </div>
+      <div class="field">
+        <span id="labelConsultant" class="text-var(--accent-yellow)">Consultant:</span> 
+        <input id="consultant" type="text" placeholder="د. علي احمد"/>
+      </div>
     </div>
 
     <!-- S - Situation -->
     <div class="section-title flex items-center gap-3">
       <svg class="w-7 h-7"><use href="#situation"></use></svg>
-      S - Situation
+      <span id="sectionSituation">S - Situation</span>
     </div>
     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="field"><span class="text-var(--accent-yellow)">Current Complaints:</span> <textarea id="complaints" placeholder="ضيق تنفس، ألم صدر..."></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Diagnosis:</span> <textarea id="diagnosis" placeholder="احتشاء عضلة قلبية"></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Connection:</span> <input id="connection" type="text" placeholder="RT CVL - 12/4"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Infusion:</span> <input id="infusion" type="text" placeholder="D10% - R10"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Diet:</span> <input id="diet" type="text" placeholder="NPO"/></div>
+      <div class="field">
+        <span id="labelComplaints" class="text-var(--accent-yellow)">Current Complaints:</span> 
+        <textarea id="complaints" placeholder="ضيق تنفس، ألم صدر..." class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelDiagnosis" class="text-var(--accent-yellow)">Diagnosis:</span> 
+        <textarea id="diagnosis" placeholder="احتشاء عضلة قلبية" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelConnection" class="text-var(--accent-yellow)">Connection:</span> 
+        <textarea id="connection" placeholder="RT CVL - 12/4" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelInfusion" class="text-var(--accent-yellow)">Infusion:</span> 
+        <textarea id="infusion" placeholder="D10% - R10" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelDiet" class="text-var(--accent-yellow)">Diet:</span> 
+        <textarea id="diet" placeholder="NPO" class="input-large"></textarea>
+      </div>
     </div>
 
     <!-- B - Background -->
     <div class="section-title flex items-center gap-3">
       <svg class="w-7 h-7"><use href="#background"></use></svg>
-      B - Background
+      <span id="sectionBackground">B - Background</span>
     </div>
     <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="field"><span class="text-var(--accent-yellow)">History:</span> <textarea id="history" placeholder="تاريخ مرضي..."></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Chief Complaint on Admission:</span> <textarea id="chiefComplaint" placeholder="..."></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Allergy:</span> <input id="allergy" type="text" placeholder="Penicillin"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Isolation:</span> <input id="isolation" type="text" placeholder="Contact"/></div>
+      <div class="field">
+        <span id="labelHistory" class="text-var(--accent-yellow)">History:</span> 
+        <textarea id="history" placeholder="تاريخ مرضي..." class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelChiefComplaint" class="text-var(--accent-yellow)">Chief Complaint on Admission:</span> 
+        <textarea id="chiefComplaint" placeholder="..." class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelAllergy" class="text-var(--accent-yellow)">Allergy:</span> 
+        <textarea id="allergy" placeholder="Penicillin" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelIsolation" class="text-var(--accent-yellow)">Isolation:</span> 
+        <textarea id="isolation" placeholder="Contact" class="input-large"></textarea>
+      </div>
+    </div>
+
+    <!-- Medications Section -->
+    <div class="section-title flex items-center gap-3">
+      <svg class="w-7 h-7"><use href="#medication"></use></svg>
+      <span id="sectionMedications">Medications</span>
+      <button onclick="addMedication()" class="ml-auto bg-var(--accent-orange) text-white px-4 py-1 rounded text-sm hover:bg-var(--accent-orange-light) transition">
+        <span id="btnAddMedication">+ Add Medication</span>
+      </button>
+    </div>
+    <div class="p-6" id="medicationsContainer">
+      <!-- Dynamic medication items will be added here -->
+      <div id="noMedicationsMessage" class="text-center text-gray-400 py-4">
+        <span id="noMedsText">No medications added yet. Click "Add Medication" to add.</span>
+      </div>
     </div>
 
     <!-- A - Assessment -->
     <div class="section-title flex items-center gap-3">
       <svg class="w-7 h-7"><use href="#assessment"></use></svg>
-      A - Assessment
+      <span id="sectionAssessment">A - Assessment</span>
     </div>
-    <div class="p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      <div class="field"><span class="text-var(--accent-yellow)">GCS:</span> <input id="gcs" type="text" placeholder="15"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Fall Risk:</span> <input id="fallRisk" type="text" placeholder="High"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Ventilation:</span> <input id="vent" type="text" placeholder="No"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Bed Sore:</span> <input id="bedsore" type="text" placeholder="Stage 2"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Restraint:</span> <input id="restraint" type="text" placeholder="No"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Significant Findings:</span> <textarea id="findings" class="col-span-full"></textarea></div>
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="field">
+        <span id="labelGCS" class="text-var(--accent-yellow)">GCS:</span> 
+        <input id="gcs" type="text" placeholder="15"/>
+      </div>
+      <div class="field">
+        <span id="labelFallRisk" class="text-var(--accent-yellow)">Fall Risk:</span> 
+        <input id="fallRisk" type="text" placeholder="High"/>
+      </div>
+      <div class="field">
+        <span id="labelVent" class="text-var(--accent-yellow)">Ventilation:</span> 
+        <input id="vent" type="text" placeholder="No"/>
+      </div>
+      <div class="field">
+        <span id="labelBedsore" class="text-var(--accent-yellow)">Bed Sore:</span> 
+        <input id="bedsore" type="text" placeholder="Stage 2"/>
+      </div>
+      <div class="field">
+        <span id="labelRestraint" class="text-var(--accent-yellow)">Restraint:</span> 
+        <input id="restraint" type="text" placeholder="No"/>
+      </div>
+      <div class="field md:col-span-2 lg:col-span-3">
+        <span id="labelFindings" class="text-var(--accent-yellow)">Significant Findings:</span> 
+        <textarea id="findings" class="input-large"></textarea>
+      </div>
     </div>
 
     <!-- R - Recommendation -->
     <div class="section-title flex items-center gap-3">
       <svg class="w-7 h-7"><use href="#recommendation"></use></svg>
-      R - Recommendation
+      <span id="sectionRecommendation">R - Recommendation</span>
     </div>
     <div class="p-6">
-      <div class="field"><span class="text-var(--accent-yellow)">Plan of Care:</span> <textarea id="plan" rows="3"></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Physician Orders:</span> <textarea id="orders" rows="3"></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Cultures & Sensitivity:</span> <textarea id="cultures" rows="2"></textarea></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Consultation:</span> <input id="consult" type="text"/></div>
-      <div class="field"><span class="text-var(--accent-yellow)">Risks:</span> <textarea id="risks" rows="2"></textarea></div>
+      <div class="field">
+        <span id="labelPlan" class="text-var(--accent-yellow)">Plan of Care:</span> 
+        <textarea id="plan" rows="4" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelOrders" class="text-var(--accent-yellow)">Physician Orders:</span> 
+        <textarea id="orders" rows="4" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelCultures" class="text-var(--accent-yellow)">Cultures & Sensitivity:</span> 
+        <textarea id="cultures" rows="3" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelConsult" class="text-var(--accent-yellow)">Consultation:</span> 
+        <textarea id="consult" class="input-large"></textarea>
+      </div>
+      <div class="field">
+        <span id="labelRisks" class="text-var(--accent-yellow)">Risks:</span> 
+        <textarea id="risks" rows="3" class="input-large"></textarea>
+      </div>
     </div>
 
     <!-- Signature -->
     <div class="p-6 bg-[#343744] border-t border-gray-700">
-      <label class="block text-var(--accent-yellow) mb-2">اسم الممرض المسلم / التوقيع في الملف</label>
+      <label id="labelNurseSignature" class="block text-var(--accent-yellow) mb-2">اسم الممرض المسلم / التوقيع في الملف</label>
       <input id="nurseSignature" type="text" class="w-full bg-transparent border-b-2 border-var(--accent-orange) text-xl" placeholder="MR. " value="MR. "/>
     </div>
   </div>
 
   <!-- Action Buttons -->
-  <div class="flex flex-wrap gap  gap-4 justify-center">
-    <button onclick="savePatient()" class="px-8 py-4 rounded-lg font-bold btn-primary flex items-center gap-3">
+  <div class="flex flex-wrap gap-4 justify-center mb-8">
+    <button onclick="savePatient()" class="btn-primary flex items-center gap-3">
       <svg class="w-6 h-6"><use href="#save"></use></svg>
-      حفظ المريض
+      <span id="btnSavePatient">حفظ المريض</span>
     </button>
-    <button onclick="exportPDF()" class="px-8 py-4 rounded-lg font-bold bg-var(--accent-yellow) text-var(--dark-bg) flex items-center gap-3">
-      <svg class="w-6 h-6"><use href="#download"></use></svg>
-      Export ISBAR PDF
-    </button>
-    <button onclick="clearForm()" class="px-8 py-4 rounded-lg font-bold bg-gray-600 flex items-center gap-3">
+    <button onclick="clearForm()" class="btn-secondary flex items-center gap-3">
       <svg class="w-6 h-6"><use href="#trash"></use></svg>
-      مسح النموذج
+      <span id="btnClearForm">مسح النموذج</span>
     </button>
   </div>
 
+  <!-- Export Options -->
+  <div class="card p-6 mb-8">
+    <h2 id="exportTitle" class="text-2xl font-bold text-var(--accent-yellow) mb-4 text-center">خيارات التصدير</h2>
+    <div class="export-options">
+      <button onclick="exportISBARPDF()" class="btn-primary flex items-center gap-3">
+        <svg class="w-6 h-6"><use href="#download"></use></svg>
+        <span id="btnExportISBAR">تصدير ISBAR PDF</span>
+      </button>
+      <button onclick="exportMedicationsPDF()" class="btn-primary flex items-center gap-3">
+        <svg class="w-6 h-6"><use href="#medication"></use></svg>
+        <span id="btnExportMeds">تصدير جدول الأدوية</span>
+      </button>
+      <button onclick="exportComprehensivePDF()" class="btn-primary flex items-center gap-3">
+        <svg class="w-6 h-6"><use href="#comprehensive"></use></svg>
+        <span id="btnExportComprehensive">تصدير ورقة شاملة</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Saved Patients List -->
-  <div class="mt-12 card p-6">
+  <div class="card p-6">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-var(--accent-yellow)">المرضى المسلمين</h2>
+      <h2 id="savedPatientsTitle" class="text-2xl font-bold text-var(--accent-yellow)">المرضى المسلمين</h2>
       <input id="searchPatient" type="text" placeholder="بحث بالاسم أو الرقم السريري..." class="px-4 py-2 rounded-lg bg-[#343744] border border-gray-600"/>
     </div>
     <div id="patientsList" class="space-y-3"></div>
     <div class="mt-6 text-center">
       <button onclick="deleteAllPatients()" class="text-red-400 hover:text-red-300 font-bold">
-        حذف جميع المرضى نهائياً
+        <span id="btnDeleteAll">حذف جميع المرضى نهائياً</span>
       </button>
     </div>
   </div>
 </div>
 
-<!-- Heroicons Definitions (مخفية) -->
+<!-- Heroicons Definitions (Hidden) -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="identification" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"/><path d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></symbol>
   <symbol id="situation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></symbol>
   <symbol id="background" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="medication" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></symbol>
   <symbol id="assessment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></symbol>
   <symbol id="recommendation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 010 8h-1m-7-4h6"/></symbol>
   <symbol id="save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
   <symbol id="download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4m4-5l5 5 5-5m-5-7v12"/></symbol>
   <symbol id="trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></symbol>
+  <symbol id="comprehensive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></symbol>
 </svg>
 
 <script>
 const { jsPDF } = window.jspdf;
+let currentLanguage = 'ar';
+let medicationCounter = 0;
 
-// حفظ المريض في localStorage
+// Language texts
+const translations = {
+  ar: {
+    pageTitle: "ISBAR Summary",
+    pageSubtitle: "نظام تسليم وتسلم المريض",
+    sectionIdentification: "I - الهوية",
+    sectionSituation: "S - الحالة",
+    sectionBackground: "B - الخلفية",
+    sectionMedications: "الأدوية",
+    sectionAssessment: "A - التقييم",
+    sectionRecommendation: "R - التوصيات",
+    labelRoom: "رقم الغرفة:",
+    labelPtName: "اسم المريض:",
+    labelAge: "العمر:",
+    labelAdmDate: "تاريخ القبول:",
+    labelAdmFrom: "قادم من:",
+    labelConsultant: "الطبيب المعالج:",
+    labelComplaints: "الشكاوى الحالية:",
+    labelDiagnosis: "التشخيص:",
+    labelConnection: "الاتصالات:",
+    labelInfusion: "المحاليل:",
+    labelDiet: "الحمية الغذائية:",
+    labelHistory: "التاريخ المرضي:",
+    labelChiefComplaint: "الشكوى الرئيسية عند القبول:",
+    labelAllergy: "الحساسيات:",
+    labelIsolation: "العزل:",
+    labelGCS: "مقياس غلاسكو:",
+    labelFallRisk: "خطر السقوط:",
+    labelVent: "التنفس الصناعي:",
+    labelBedsore: "قرحة الفراش:",
+    labelRestraint: "التقييد البدني:",
+    labelFindings: "الملاحظات الهامة:",
+    labelPlan: "خطة الرعاية:",
+    labelOrders: "أوامر الطبيب:",
+    labelCultures: "المزارع والحساسية:",
+    labelConsult: "الاستشارات:",
+    labelRisks: "المخاطر:",
+    labelNurseSignature: "اسم الممرض المسلم / التوقيع في الملف:",
+    btnSavePatient: "حفظ المريض",
+    btnClearForm: "مسح النموذج",
+    btnExportISBAR: "تصدير ISBAR PDF",
+    btnExportMeds: "تصدير جدول الأدوية",
+    btnExportComprehensive: "تصدير ورقة شاملة",
+    exportTitle: "خيارات التصدير",
+    savedPatientsTitle: "المرضى المسلمون",
+    btnAddMedication: "+ إضافة دواء",
+    noMedsText: "لم يتم إضافة أدوية بعد. انقر على \"إضافة دواء\" للإضافة.",
+    medicationName: "اسم الدواء",
+    medicationDosage: "الجرعة",
+    medicationFrequency: "التكرار",
+    medicationRoute: "طريقة الإعطاء",
+    medicationNotes: "ملاحظات",
+    btnDeleteMed: "حذف",
+    btnDeleteAll: "حذف جميع المرضى نهائياً",
+    searchPlaceholder: "بحث بالاسم أو الرقم السريري..."
+  },
+  en: {
+    pageTitle: "ISBAR Summary",
+    pageSubtitle: "Patient Handover System",
+    sectionIdentification: "I - Identification",
+    sectionSituation: "S - Situation",
+    sectionBackground: "B - Background",
+    sectionMedications: "Medications",
+    sectionAssessment: "A - Assessment",
+    sectionRecommendation: "R - Recommendation",
+    labelRoom: "Room No:",
+    labelPtName: "Patient Name:",
+    labelAge: "Age:",
+    labelAdmDate: "Admission Date:",
+    labelAdmFrom: "Admission From:",
+    labelConsultant: "Consultant:",
+    labelComplaints: "Current Complaints:",
+    labelDiagnosis: "Diagnosis:",
+    labelConnection: "Connection:",
+    labelInfusion: "Infusion:",
+    labelDiet: "Diet:",
+    labelHistory: "History:",
+    labelChiefComplaint: "Chief Complaint on Admission:",
+    labelAllergy: "Allergy:",
+    labelIsolation: "Isolation:",
+    labelGCS: "GCS:",
+    labelFallRisk: "Fall Risk:",
+    labelVent: "Ventilation:",
+    labelBedsore: "Bed Sore:",
+    labelRestraint: "Restraint:",
+    labelFindings: "Significant Findings:",
+    labelPlan: "Plan of Care:",
+    labelOrders: "Physician Orders:",
+    labelCultures: "Cultures & Sensitivity:",
+    labelConsult: "Consultation:",
+    labelRisks: "Risks:",
+    labelNurseSignature: "Handover Nurse Name / File Signature:",
+    btnSavePatient: "Save Patient",
+    btnClearForm: "Clear Form",
+    btnExportISBAR: "Export ISBAR PDF",
+    btnExportMeds: "Export Medications Table",
+    btnExportComprehensive: "Export Comprehensive Sheet",
+    exportTitle: "Export Options",
+    savedPatientsTitle: "Saved Patients",
+    btnAddMedication: "+ Add Medication",
+    noMedsText: "No medications added yet. Click \"Add Medication\" to add.",
+    medicationName: "Medication Name",
+    medicationDosage: "Dosage",
+    medicationFrequency: "Frequency",
+    medicationRoute: "Route",
+    medicationNotes: "Notes",
+    btnDeleteMed: "Delete",
+    btnDeleteAll: "Delete All Patients",
+    searchPlaceholder: "Search by name or room number..."
+  }
+};
+
+// Switch language
+function switchLanguage(lang) {
+  currentLanguage = lang;
+  const html = document.getElementById('htmlRoot');
+  
+  if (lang === 'ar') {
+    html.dir = 'rtl';
+    html.lang = 'ar';
+    document.body.classList.add('language-rtl');
+    document.body.classList.remove('language-ltr');
+  } else {
+    html.dir = 'ltr';
+    html.lang = 'en';
+    document.body.classList.add('language-ltr');
+    document.body.classList.remove('language-rtl');
+  }
+  
+  // Update language buttons
+  document.getElementById('langAr').classList.toggle('active', lang === 'ar');
+  document.getElementById('langEn').classList.toggle('active', lang === 'en');
+  
+  // Update all texts
+  updatePageTexts();
+  
+  // Update medication items
+  updateMedicationTexts();
+}
+
+// Update page texts based on current language
+function updatePageTexts() {
+  const texts = translations[currentLanguage];
+  
+  // Update headings
+  document.getElementById('pageTitle').textContent = texts.pageTitle;
+  document.getElementById('pageSubtitle').textContent = texts.pageSubtitle;
+  document.getElementById('exportTitle').textContent = texts.exportTitle;
+  document.getElementById('savedPatientsTitle').textContent = texts.savedPatientsTitle;
+  
+  // Update section titles
+  document.getElementById('sectionIdentification').textContent = texts.sectionIdentification;
+  document.getElementById('sectionSituation').textContent = texts.sectionSituation;
+  document.getElementById('sectionBackground').textContent = texts.sectionBackground;
+  document.getElementById('sectionMedications').textContent = texts.sectionMedications;
+  document.getElementById('sectionAssessment').textContent = texts.sectionAssessment;
+  document.getElementById('sectionRecommendation').textContent = texts.sectionRecommendation;
+  
+  // Update labels
+  document.getElementById('labelRoom').textContent = texts.labelRoom;
+  document.getElementById('labelPtName').textContent = texts.labelPtName;
+  document.getElementById('labelAge').textContent = texts.labelAge;
+  document.getElementById('labelAdmDate').textContent = texts.labelAdmDate;
+  document.getElementById('labelAdmFrom').textContent = texts.labelAdmFrom;
+  document.getElementById('labelConsultant').textContent = texts.labelConsultant;
+  document.getElementById('labelComplaints').textContent = texts.labelComplaints;
+  document.getElementById('labelDiagnosis').textContent = texts.labelDiagnosis;
+  document.getElementById('labelConnection').textContent = texts.labelConnection;
+  document.getElementById('labelInfusion').textContent = texts.labelInfusion;
+  document.getElementById('labelDiet').textContent = texts.labelDiet;
+  document.getElementById('labelHistory').textContent = texts.labelHistory;
+  document.getElementById('labelChiefComplaint').textContent = texts.labelChiefComplaint;
+  document.getElementById('labelAllergy').textContent = texts.labelAllergy;
+  document.getElementById('labelIsolation').textContent = texts.labelIsolation;
+  document.getElementById('labelGCS').textContent = texts.labelGCS;
+  document.getElementById('labelFallRisk').textContent = texts.labelFallRisk;
+  document.getElementById('labelVent').textContent = texts.labelVent;
+  document.getElementById('labelBedsore').textContent = texts.labelBedsore;
+  document.getElementById('labelRestraint').textContent = texts.labelRestraint;
+  document.getElementById('labelFindings').textContent = texts.labelFindings;
+  document.getElementById('labelPlan').textContent = texts.labelPlan;
+  document.getElementById('labelOrders').textContent = texts.labelOrders;
+  document.getElementById('labelCultures').textContent = texts.labelCultures;
+  document.getElementById('labelConsult').textContent = texts.labelConsult;
+  document.getElementById('labelRisks').textContent = texts.labelRisks;
+  document.getElementById('labelNurseSignature').textContent = texts.labelNurseSignature;
+  
+  // Update buttons
+  document.getElementById('btnSavePatient').textContent = texts.btnSavePatient;
+  document.getElementById('btnClearForm').textContent = texts.btnClearForm;
+  document.getElementById('btnExportISBAR').textContent = texts.btnExportISBAR;
+  document.getElementById('btnExportMeds').textContent = texts.btnExportMeds;
+  document.getElementById('btnExportComprehensive').textContent = texts.btnExportComprehensive;
+  document.getElementById('btnAddMedication').textContent = texts.btnAddMedication;
+  document.getElementById('btnDeleteAll').textContent = texts.btnDeleteAll;
+  
+  // Update search placeholder
+  document.getElementById('searchPatient').placeholder = texts.searchPlaceholder;
+  
+  // Update no medications message
+  document.getElementById('noMedicationsMessage').textContent = texts.noMedsText;
+}
+
+// Update medication item texts
+function updateMedicationTexts() {
+  const texts = translations[currentLanguage];
+  const medItems = document.querySelectorAll('.medication-item');
+  
+  medItems.forEach(item => {
+    const nameLabel = item.querySelector('.med-name-label');
+    const dosageLabel = item.querySelector('.med-dosage-label');
+    const frequencyLabel = item.querySelector('.med-frequency-label');
+    const routeLabel = item.querySelector('.med-route-label');
+    const notesLabel = item.querySelector('.med-notes-label');
+    const deleteBtn = item.querySelector('.delete-med-btn');
+    
+    if (nameLabel) nameLabel.textContent = texts.medicationName;
+    if (dosageLabel) dosageLabel.textContent = texts.medicationDosage;
+    if (frequencyLabel) frequencyLabel.textContent = texts.medicationFrequency;
+    if (routeLabel) routeLabel.textContent = texts.medicationRoute;
+    if (notesLabel) notesLabel.textContent = texts.medicationNotes;
+    if (deleteBtn) deleteBtn.textContent = texts.btnDeleteMed;
+  });
+}
+
+// Add a new medication item
+function addMedication() {
+  medicationCounter++;
+  const texts = translations[currentLanguage];
+  
+  const medItem = document.createElement('div');
+  medItem.className = 'medication-item';
+  medItem.id = `medication-${medicationCounter}`;
+  medItem.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-3">
+      <div>
+        <label class="block text-var(--accent-yellow) mb-1 med-name-label">${texts.medicationName}</label>
+        <input type="text" class="med-name w-full bg-[#2a2d3a] px-3 py-2 rounded" placeholder="Paracetamol">
+      </div>
+      <div>
+        <label class="block text-var(--accent-yellow) mb-1 med-dosage-label">${texts.medicationDosage}</label>
+        <input type="text" class="med-dosage w-full bg-[#2a2d3a] px-3 py-2 rounded" placeholder="500 mg">
+      </div>
+      <div>
+        <label class="block text-var(--accent-yellow) mb-1 med-frequency-label">${texts.medicationFrequency}</label>
+        <input type="text" class="med-frequency w-full bg-[#2a2d3a] px-3 py-2 rounded" placeholder="Every 6 hours">
+      </div>
+      <div>
+        <label class="block text-var(--accent-yellow) mb-1 med-route-label">${texts.medicationRoute}</label>
+        <select class="med-route w-full bg-[#2a2d3a] px-3 py-2 rounded">
+          <option value="PO">PO (Oral)</option>
+          <option value="IV">IV</option>
+          <option value="IM">IM</option>
+          <option value="SC">SC</option>
+          <option value="Topical">Topical</option>
+          <option value="Inhalation">Inhalation</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button onclick="deleteMedication('medication-${medicationCounter}')" class="delete-med-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full transition">
+          ${texts.btnDeleteMed}
+        </button>
+      </div>
+    </div>
+    <div>
+      <label class="block text-var(--accent-yellow) mb-1 med-notes-label">${texts.medicationNotes}</label>
+      <textarea class="med-notes w-full bg-[#2a2d3a] px-3 py-2 rounded" rows="2" placeholder="Additional notes..."></textarea>
+    </div>
+  `;
+  
+  // Hide the no medications message
+  document.getElementById('noMedicationsMessage').style.display = 'none';
+  
+  // Add to container
+  document.getElementById('medicationsContainer').appendChild(medItem);
+}
+
+// Delete a medication item
+function deleteMedication(id) {
+  const medItem = document.getElementById(id);
+  if (medItem) {
+    medItem.remove();
+    
+    // Show no medications message if no medications left
+    const medItems = document.querySelectorAll('.medication-item');
+    if (medItems.length === 0) {
+      document.getElementById('noMedicationsMessage').style.display = 'block';
+    }
+  }
+}
+
+// Get all medications data
+function getMedicationsData() {
+  const medItems = document.querySelectorAll('.medication-item');
+  const medications = [];
+  
+  medItems.forEach(item => {
+    const name = item.querySelector('.med-name')?.value || '';
+    const dosage = item.querySelector('.med-dosage')?.value || '';
+    const frequency = item.querySelector('.med-frequency')?.value || '';
+    const route = item.querySelector('.med-route')?.value || '';
+    const notes = item.querySelector('.med-notes')?.value || '';
+    
+    if (name || dosage || frequency) {
+      medications.push({
+        name,
+        dosage,
+        frequency,
+        route,
+        notes
+      });
+    }
+  });
+  
+  return medications;
+}
+
+// Save patient to localStorage
 function savePatient() {
   const patient = {
     id: Date.now(),
@@ -218,6 +738,7 @@ function savePatient() {
     chiefComplaint: document.getElementById('chiefComplaint').value,
     allergy: document.getElementById('allergy').value,
     isolation: document.getElementById('isolation').value,
+    medications: getMedicationsData(),
     gcs: document.getElementById('gcs').value,
     fallRisk: document.getElementById('fallRisk').value,
     vent: document.getElementById('vent').value,
@@ -230,110 +751,973 @@ function savePatient() {
     consult: document.getElementById('consult').value,
     risks: document.getElementById('risks').value,
     signature: document.getElementById('nurseSignature').value,
-    savedAt: new Date().toLocaleString('ar-EG')
+    savedAt: new Date().toLocaleString(currentLanguage === 'ar' ? 'ar-EG' : 'en-US'),
+    language: currentLanguage
   };
 
   let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
   patients.push(patient);
   localStorage.setItem('isbarPatients', JSON.stringify(patients));
-  alert('تم حفظ بيانات المريض بنجاح');
+  
+  alert(currentLanguage === 'ar' ? 'تم حفظ بيانات المريض بنجاح' : 'Patient data saved successfully');
   loadPatients();
 }
 
-// تحميل قائمة المرضى
+// Load patients list
 function loadPatients(filter = '') {
   let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
   const list = document.getElementById('patientsList');
   list.innerHTML = '';
 
   patients
-    .filter(p => p.ptName.includes(filter) || p.room.includes(filter))
+    .filter(p => p.ptName.toLowerCase().includes(filter.toLowerCase()) || p.room.includes(filter))
     .forEach(p => {
       const div = document.createElement('div');
       div.className = 'bg-[#343744] p-4 rounded-lg flex justify-between items-center';
       div.innerHTML = `
         <div>
-          <strong>${p.ptName}</strong> - الغرفة: ${p.room} - تم الحفظ: ${p.savedAt}
+          <strong>${p.ptName}</strong> - ${currentLanguage === 'ar' ? 'الغرفة' : 'Room'}: ${p.room} - ${currentLanguage === 'ar' ? 'تم الحفظ' : 'Saved'}: ${p.savedAt}
+          ${p.medications && p.medications.length > 0 ? `<br><small>${p.medications.length} ${currentLanguage === 'ar' ? 'دواء' : 'medication(s)'}</small>` : ''}
         </div>
         <div class="flex gap-3">
-          <button onclick="loadPatient(${p.id})" class="text-var(--accent-yellow) hover:underline">تحميل</button>
-          <button onclick="deletePatient(${p.id})" class="text-red-400 hover:text-red-300">حذف</button>
+          <button onclick="loadPatient(${p.id})" class="text-var(--accent-yellow) hover:underline">
+            ${currentLanguage === 'ar' ? 'تحميل' : 'Load'}
+          </button>
+          <button onclick="deletePatient(${p.id})" class="text-red-400 hover:text-red-300">
+            ${currentLanguage === 'ar' ? 'حذف' : 'Delete'}
+          </button>
         </div>
       `;
       list.appendChild(div);
     });
 }
 
-// تحميل بيانات مريض معين
+// Load a specific patient's data
 function loadPatient(id) {
   let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
   const p = patients.find(x => x.id === id);
   if (!p) return;
 
-  document.getElementById('room').value = p.room;
-  document.getElementById('ptName').value = p.ptName;
-  // ... باقي الحقول بنفس الطريقة (اختصرتهم للطول)
-  document.getElementById('nurseSignature').value = p.signature;
+  // Set form values
+  document.getElementById('room').value = p.room || '';
+  document.getElementById('ptName').value = p.ptName || '';
+  document.getElementById('age').value = p.age || '';
+  document.getElementById('admDate').value = p.admDate || '';
+  document.getElementById('admFrom').value = p.admFrom || '';
+  document.getElementById('consultant').value = p.consultant || '';
+  document.getElementById('complaints').value = p.complaints || '';
+  document.getElementById('diagnosis').value = p.diagnosis || '';
+  document.getElementById('connection').value = p.connection || '';
+  document.getElementById('infusion').value = p.infusion || '';
+  document.getElementById('diet').value = p.diet || '';
+  document.getElementById('history').value = p.history || '';
+  document.getElementById('chiefComplaint').value = p.chiefComplaint || '';
+  document.getElementById('allergy').value = p.allergy || '';
+  document.getElementById('isolation').value = p.isolation || '';
+  document.getElementById('gcs').value = p.gcs || '';
+  document.getElementById('fallRisk').value = p.fallRisk || '';
+  document.getElementById('vent').value = p.vent || '';
+  document.getElementById('bedsore').value = p.bedsore || '';
+  document.getElementById('restraint').value = p.restraint || '';
+  document.getElementById('findings').value = p.findings || '';
+  document.getElementById('plan').value = p.plan || '';
+  document.getElementById('orders').value = p.orders || '';
+  document.getElementById('cultures').value = p.cultures || '';
+  document.getElementById('consult').value = p.consult || '';
+  document.getElementById('risks').value = p.risks || '';
+  document.getElementById('nurseSignature').value = p.signature || 'MR. ';
+  
+  // Clear existing medications
+  document.querySelectorAll('.medication-item').forEach(item => item.remove());
+  
+  // Load medications if any
+  if (p.medications && p.medications.length > 0) {
+    document.getElementById('noMedicationsMessage').style.display = 'none';
+    
+    p.medications.forEach(med => {
+      medicationCounter++;
+      const texts = translations[currentLanguage];
+      
+      const medItem = document.createElement('div');
+      medItem.className = 'medication-item';
+      medItem.id = `medication-${medicationCounter}`;
+      medItem.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-3">
+          <div>
+            <label class="block text-var(--accent-yellow) mb-1 med-name-label">${texts.medicationName}</label>
+            <input type="text" class="med-name w-full bg-[#2a2d3a] px-3 py-2 rounded" value="${med.name || ''}">
+          </div>
+          <div>
+            <label class="block text-var(--accent-yellow) mb-1 med-dosage-label">${texts.medicationDosage}</label>
+            <input type="text" class="med-dosage w-full bg-[#2a2d3a] px-3 py-2 rounded" value="${med.dosage || ''}">
+          </div>
+          <div>
+            <label class="block text-var(--accent-yellow) mb-1 med-frequency-label">${texts.medicationFrequency}</label>
+            <input type="text" class="med-frequency w-full bg-[#2a2d3a] px-3 py-2 rounded" value="${med.frequency || ''}">
+          </div>
+          <div>
+            <label class="block text-var(--accent-yellow) mb-1 med-route-label">${texts.medicationRoute}</label>
+            <select class="med-route w-full bg-[#2a2d3a] px-3 py-2 rounded">
+              <option value="PO" ${med.route === 'PO' ? 'selected' : ''}>PO (Oral)</option>
+              <option value="IV" ${med.route === 'IV' ? 'selected' : ''}>IV</option>
+              <option value="IM" ${med.route === 'IM' ? 'selected' : ''}>IM</option>
+              <option value="SC" ${med.route === 'SC' ? 'selected' : ''}>SC</option>
+              <option value="Topical" ${med.route === 'Topical' ? 'selected' : ''}>Topical</option>
+              <option value="Inhalation" ${med.route === 'Inhalation' ? 'selected' : ''}>Inhalation</option>
+              <option value="Other" ${med.route === 'Other' ? 'selected' : ''}>Other</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="deleteMedication('medication-${medicationCounter}')" class="delete-med-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded w-full transition">
+              ${texts.btnDeleteMed}
+            </button>
+          </div>
+        </div>
+        <div>
+          <label class="block text-var(--accent-yellow) mb-1 med-notes-label">${texts.medicationNotes}</label>
+          <textarea class="med-notes w-full bg-[#2a2d3a] px-3 py-2 rounded" rows="2">${med.notes || ''}</textarea>
+        </div>
+      `;
+      
+      document.getElementById('medicationsContainer').appendChild(medItem);
+    });
+  } else {
+    document.getElementById('noMedicationsMessage').style.display = 'block';
+  }
 }
 
-// حذف مريض
+// Delete a patient
 function deletePatient(id) {
-  if (!confirm('تأكيد حذف هذا المريض؟')) return;
+  if (!confirm(currentLanguage === 'ar' ? 'تأكيد حذف هذا المريض؟' : 'Confirm delete this patient?')) return;
+  
   let patients = JSON.parse(localStorage.getItem('isbarPatients') || '[]');
   patients = patients.filter(p => p.id !== id);
   localStorage.setItem('isbarPatients', JSON.stringify(patients));
   loadPatients();
 }
 
-// حذف الكل
+// Delete all patients
 function deleteAllPatients() {
-  if (!confirm('حذف جميع المرضى نهائياً؟ لا يمكن التراجع!')) return;
+  if (!confirm(currentLanguage === 'ar' ? 'حذف جميع المرضى نهائياً؟ لا يمكن التراجع!' : 'Delete all patients permanently? This cannot be undone!')) return;
+  
   localStorage.removeItem('isbarPatients');
   loadPatients();
-  alert('تم حذف جميع المرضى');
+  alert(currentLanguage === 'ar' ? 'تم حذف جميع المرضى' : 'All patients deleted');
 }
 
-// بحث
+// Search functionality
 document.getElementById('searchPatient').addEventListener('input', e => {
   loadPatients(e.target.value);
 });
 
-// تصدير PDF بنفس التنسيق
-async function exportPDF() {
+// Export ISBAR PDF
+function exportISBARPDF() {
   const signature = document.getElementById('nurseSignature').value || 'MR. ';
-  const ptName = document.getElementById('ptName').value || 'المريض';
-
-  const { pdf } = await html2canvas(document.getElementById('isbarCard'), { scale: 2 })
-    .then(canvas => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const width = pdf.internal.pageSize.getWidth();
-      const height = (canvas.height * width) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, width, height);
-
-      // إضافة التوقيع والاسم في الأسفل
-      pdf.setFontSize(16);
-      pdf.setTextColor('#F7E396');
-      pdf.text(signature, width / 2, height - 30, { align: 'center' });
-      pdf.setFontSize(20);
-      pdf.text('-------------------', width / 2, height - 20, { align: 'center' });
-      pdf.setFontSize(22);
-      pdf.text(`MR. ${ptName.toUpperCase()}`, width / 2, height - 5, { align: 'center' });
-
-      return { pdf };
-    });
-
-  pdf.save(`ISBAR_${ptName}_${new Date().toISOString().slice(0,10)}.pdf`);
+  const ptName = document.getElementById('ptName').value || (currentLanguage === 'ar' ? 'المريض' : 'Patient');
+  
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = margin;
+  
+  // Colors
+  const primaryColor = [67, 78, 120]; // #434E78
+  const secondaryColor = [96, 123, 143]; // #607B8F
+  const accentYellow = [247, 227, 150]; // #F7E396
+  const accentOrange = [233, 127, 74]; // #E97F4A
+  const darkBg = [26, 29, 40]; // #1a1d28
+  const darkSurface = [42, 45, 58]; // #2a2d3a
+  
+  // Header
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text("ISBAR SUMMARY", pageWidth / 2, 18, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(currentLanguage === 'ar' ? "نظام تسليم وتسلم المريض" : "Patient Handover System", pageWidth / 2, 26, { align: 'center' });
+  
+  yPos = 40;
+  
+  // Patient Information
+  doc.setFillColor(...darkSurface);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 15, 'F');
+  doc.setTextColor(...accentYellow);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? "معلومات المريض" : "PATIENT INFORMATION", margin + 10, yPos + 10);
+  
+  yPos += 20;
+  
+  // Patient Details
+  const patientDetails = [
+    [currentLanguage === 'ar' ? 'اسم المريض' : 'Patient Name', document.getElementById('ptName').value || ''],
+    [currentLanguage === 'ar' ? 'رقم الغرفة' : 'Room No', document.getElementById('room').value || ''],
+    [currentLanguage === 'ar' ? 'العمر' : 'Age', document.getElementById('age').value || ''],
+    [currentLanguage === 'ar' ? 'تاريخ القبول' : 'Admission Date', document.getElementById('admDate').value || ''],
+    [currentLanguage === 'ar' ? 'قادم من' : 'Admission From', document.getElementById('admFrom').value || ''],
+    [currentLanguage === 'ar' ? 'الطبيب المعالج' : 'Consultant', document.getElementById('consultant').value || '']
+  ];
+  
+  doc.autoTable({
+    startY: yPos,
+    head: [[currentLanguage === 'ar' ? 'المجال' : 'Field', currentLanguage === 'ar' ? 'القيمة' : 'Value']],
+    body: patientDetails,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: primaryColor, 
+      textColor: [255, 255, 255], 
+      fontSize: 11,
+      fontStyle: 'bold',
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { 
+        cellWidth: 50, 
+        fontStyle: 'bold',
+        textColor: primaryColor
+      },
+      1: { 
+        cellWidth: 115,
+        textColor: darkBg
+      }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 10;
+  
+  // Check for page break
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // I - Identification Section
+  doc.setFillColor(...primaryColor);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("I - " + (currentLanguage === 'ar' ? "الهوية" : "IDENTIFICATION"), margin + 10, yPos + 5.5);
+  
+  yPos += 12;
+  
+  // Already included in patient details above
+  
+  // S - Situation Section
+  doc.setFillColor(...secondaryColor);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text("S - " + (currentLanguage === 'ar' ? "الحالة" : "SITUATION"), margin + 10, yPos + 5.5);
+  
+  yPos += 12;
+  
+  const situationData = [
+    [currentLanguage === 'ar' ? 'الشكاوى الحالية' : 'Current Complaints', document.getElementById('complaints').value || ''],
+    [currentLanguage === 'ar' ? 'التشخيص' : 'Diagnosis', document.getElementById('diagnosis').value || ''],
+    [currentLanguage === 'ar' ? 'الاتصالات' : 'Connection', document.getElementById('connection').value || ''],
+    [currentLanguage === 'ar' ? 'المحاليل' : 'Infusion', document.getElementById('infusion').value || ''],
+    [currentLanguage === 'ar' ? 'الحمية الغذائية' : 'Diet', document.getElementById('diet').value || '']
+  ];
+  
+  doc.autoTable({
+    startY: yPos,
+    body: situationData,
+    theme: 'grid',
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      overflow: 'linebreak',
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { 
+        cellWidth: 50, 
+        fontStyle: 'bold',
+        textColor: secondaryColor
+      },
+      1: { 
+        cellWidth: 115,
+        minCellHeight: 10
+      }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 10;
+  
+  // Check for page break
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // B - Background Section
+  doc.setFillColor(...accentOrange);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text("B - " + (currentLanguage === 'ar' ? "الخلفية" : "BACKGROUND"), margin + 10, yPos + 5.5);
+  
+  yPos += 12;
+  
+  const backgroundData = [
+    [currentLanguage === 'ar' ? 'التاريخ المرضي' : 'History', document.getElementById('history').value || ''],
+    [currentLanguage === 'ar' ? 'الشكوى الرئيسية عند القبول' : 'Chief Complaint on Admission', document.getElementById('chiefComplaint').value || ''],
+    [currentLanguage === 'ar' ? 'الحساسيات' : 'Allergy', document.getElementById('allergy').value || ''],
+    [currentLanguage === 'ar' ? 'العزل' : 'Isolation', document.getElementById('isolation').value || '']
+  ];
+  
+  doc.autoTable({
+    startY: yPos,
+    body: backgroundData,
+    theme: 'grid',
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      overflow: 'linebreak',
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { 
+        cellWidth: 50, 
+        fontStyle: 'bold',
+        textColor: accentOrange
+      },
+      1: { 
+        cellWidth: 115,
+        minCellHeight: 10
+      }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 10;
+  
+  // Check for page break
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // A - Assessment Section
+  doc.setFillColor(96, 123, 143); // secondary blue
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text("A - " + (currentLanguage === 'ar' ? "التقييم" : "ASSESSMENT"), margin + 10, yPos + 5.5);
+  
+  yPos += 12;
+  
+  const assessmentData = [
+    [currentLanguage === 'ar' ? 'مقياس غلاسكو' : 'GCS', document.getElementById('gcs').value || ''],
+    [currentLanguage === 'ar' ? 'خطر السقوط' : 'Fall Risk', document.getElementById('fallRisk').value || ''],
+    [currentLanguage === 'ar' ? 'التنفس الصناعي' : 'Ventilation', document.getElementById('vent').value || ''],
+    [currentLanguage === 'ar' ? 'قرحة الفراش' : 'Bed Sore', document.getElementById('bedsore').value || ''],
+    [currentLanguage === 'ar' ? 'التقييد البدني' : 'Restraint', document.getElementById('restraint').value || ''],
+    [currentLanguage === 'ar' ? 'الملاحظات الهامة' : 'Significant Findings', document.getElementById('findings').value || '']
+  ];
+  
+  doc.autoTable({
+    startY: yPos,
+    body: assessmentData,
+    theme: 'grid',
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      overflow: 'linebreak',
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { 
+        cellWidth: 50, 
+        fontStyle: 'bold',
+        textColor: secondaryColor
+      },
+      1: { 
+        cellWidth: 115,
+        minCellHeight: 10
+      }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 10;
+  
+  // Check for page break
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // R - Recommendation Section
+  doc.setFillColor(...accentYellow);
+  doc.setTextColor(darkBg[0], darkBg[1], darkBg[2]);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+  doc.text("R - " + (currentLanguage === 'ar' ? "التوصيات" : "RECOMMENDATION"), margin + 10, yPos + 5.5);
+  
+  yPos += 12;
+  
+  const recommendationData = [
+    [currentLanguage === 'ar' ? 'خطة الرعاية' : 'Plan of Care', document.getElementById('plan').value || ''],
+    [currentLanguage === 'ar' ? 'أوامر الطبيب' : 'Physician Orders', document.getElementById('orders').value || ''],
+    [currentLanguage === 'ar' ? 'المزارع والحساسية' : 'Cultures & Sensitivity', document.getElementById('cultures').value || ''],
+    [currentLanguage === 'ar' ? 'الاستشارات' : 'Consultation', document.getElementById('consult').value || ''],
+    [currentLanguage === 'ar' ? 'المخاطر' : 'Risks', document.getElementById('risks').value || '']
+  ];
+  
+  doc.autoTable({
+    startY: yPos,
+    body: recommendationData,
+    theme: 'grid',
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      overflow: 'linebreak',
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { 
+        cellWidth: 50, 
+        fontStyle: 'bold',
+        textColor: [247, 227, 150]
+      },
+      1: { 
+        cellWidth: 115,
+        minCellHeight: 10
+      }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 10;
+  
+  // Signature Section
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'اسم الممرض المسلم / التوقيع في الملف:' : 'Handover Nurse Name / File Signature:', margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(signature, margin + 80, yPos);
+  
+  yPos += 10;
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'التاريخ والوقت:' : 'Date & Time:', margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date().toLocaleString(currentLanguage === 'ar' ? 'ar-EG' : 'en-US'), margin + 80, yPos);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("ISBAR Summary System - " + (currentLanguage === 'ar' ? "نظام تسليم وتسلم المريض" : "Patient Handover System"), pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text(new Date().toLocaleDateString(), pageWidth / 2, pageHeight - 5, { align: 'center' });
+  
+  // Save PDF
+  const fileName = `ISBAR_${ptName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(fileName);
 }
 
+// Export Medications PDF
+function exportMedicationsPDF() {
+  const medications = getMedicationsData();
+  const ptName = document.getElementById('ptName').value || (currentLanguage === 'ar' ? 'المريض' : 'Patient');
+  
+  if (medications.length === 0) {
+    alert(currentLanguage === 'ar' ? 'لا توجد أدوية لتصديرها' : 'No medications to export');
+    return;
+  }
+  
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = margin;
+  
+  // Colors
+  const primaryColor = [67, 78, 120]; // #434E78
+  const accentOrange = [233, 127, 74]; // #E97F4A
+  
+  // Header
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? "جدول الأدوية" : "MEDICATIONS TABLE", pageWidth / 2, 18, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(currentLanguage === 'ar' ? "نظام إدارة الأدوية" : "Medication Management System", pageWidth / 2, 26, { align: 'center' });
+  
+  yPos = 40;
+  
+  // Patient Information
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? "معلومات المريض:" : "Patient Information:", margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  
+  const patientInfo = [
+    `${currentLanguage === 'ar' ? 'الاسم:' : 'Name:'} ${document.getElementById('ptName').value || ''}`,
+    `${currentLanguage === 'ar' ? 'رقم الغرفة:' : 'Room No:'} ${document.getElementById('room').value || ''}`,
+    `${currentLanguage === 'ar' ? 'التشخيص:' : 'Diagnosis:'} ${document.getElementById('diagnosis').value || ''}`
+  ];
+  
+  patientInfo.forEach((info, index) => {
+    doc.text(info, margin, yPos + 8 + (index * 6));
+  });
+  
+  yPos += 35;
+  
+  // Medications Table
+  const headers = currentLanguage === 'ar' 
+    ? ['اسم الدواء', 'الجرعة', 'التكرار', 'طريقة الإعطاء', 'ملاحظات']
+    : ['Medication Name', 'Dosage', 'Frequency', 'Route', 'Notes'];
+  
+  const medRows = medications.map(med => [
+    med.name,
+    med.dosage,
+    med.frequency,
+    med.route,
+    med.notes || ''
+  ]);
+  
+  doc.autoTable({
+    startY: yPos,
+    head: [headers],
+    body: medRows,
+    theme: 'grid',
+    headStyles: { 
+      fillColor: primaryColor, 
+      textColor: [255, 255, 255], 
+      fontSize: 11,
+      fontStyle: 'bold',
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 4,
+      overflow: 'linebreak',
+      textColor: [0, 0, 0],
+      halign: currentLanguage === 'ar' ? 'right' : 'left'
+    },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { cellWidth: 40 },
+      1: { cellWidth: 25 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 50 }
+    }
+  });
+  
+  yPos = doc.lastAutoTable.finalY + 15;
+  
+  // Check for page break
+  if (yPos > pageHeight - 50) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // Additional Information
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...accentOrange);
+  doc.text(currentLanguage === 'ar' ? "ملاحظات سريرية:" : "Clinical Notes:", margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  
+  const clinicalNotes = [
+    currentLanguage === 'ar' ? "• التأكد من هوية المريض قبل إعطاء الدواء" : "• Verify patient identity before medication administration",
+    currentLanguage === 'ar' ? "• مراقبة الآثار الجانبية وتسجيلها" : "• Monitor and record side effects",
+    currentLanguage === 'ar' ? "• إبلاغ الطبيب عن أي ردود فعل سلبية" : "• Report any adverse reactions to physician",
+    currentLanguage === 'ar' ? "• التأكد من التخزين الصحيح للأدوية" : "• Ensure proper medication storage",
+    currentLanguage === 'ar' ? "• تسجيل وقت إعطاء كل دواء" : "• Record administration time for each medication"
+  ];
+  
+  clinicalNotes.forEach((note, index) => {
+    doc.text(note, margin, yPos + 8 + (index * 6));
+  });
+  
+  yPos += clinicalNotes.length * 6 + 20;
+  
+  // Signature
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'اسم الممرض:' : 'Nurse Name:', margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(document.getElementById('nurseSignature').value || 'MR. ', margin + 30, yPos);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'التاريخ:' : 'Date:', margin, yPos + 8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date().toLocaleDateString(currentLanguage === 'ar' ? 'ar-EG' : 'en-US'), margin + 30, yPos + 8);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("ISBAR Medications Report", pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text(new Date().toLocaleDateString(), pageWidth / 2, pageHeight - 5, { align: 'center' });
+  
+  // Save PDF
+  const fileName = `Medications_${ptName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(fileName);
+}
+
+// Export Comprehensive PDF (ISBAR + Medications)
+function exportComprehensivePDF() {
+  const medications = getMedicationsData();
+  const signature = document.getElementById('nurseSignature').value || 'MR. ';
+  const ptName = document.getElementById('ptName').value || (currentLanguage === 'ar' ? 'المريض' : 'Patient');
+  
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let yPos = margin;
+  
+  // Colors
+  const primaryColor = [67, 78, 120]; // #434E78
+  const secondaryColor = [96, 123, 143]; // #607B8F
+  const accentYellow = [247, 227, 150]; // #F7E396
+  const accentOrange = [233, 127, 74]; // #E97F4A
+  
+  // Header
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, pageWidth, 35, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? "التقرير الطبي الشامل" : "COMPREHENSIVE MEDICAL REPORT", pageWidth / 2, 18, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text("ISBAR + " + (currentLanguage === 'ar' ? "الأدوية" : "MEDICATIONS"), pageWidth / 2, 28, { align: 'center' });
+  
+  yPos = 45;
+  
+  // Patient Information Box
+  doc.setFillColor(240, 240, 240);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 20, 'F');
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(0.5);
+  doc.rect(margin, yPos, pageWidth - 2 * margin, 20);
+  
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? "معلومات المريض" : "PATIENT INFORMATION", margin + 10, yPos + 8);
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  
+  const patientDetails = [
+    `${currentLanguage === 'ar' ? 'الاسم:' : 'Name:'} ${document.getElementById('ptName').value || ''}`,
+    `${currentLanguage === 'ar' ? 'رقم الغرفة:' : 'Room:'} ${document.getElementById('room').value || ''}`,
+    `${currentLanguage === 'ar' ? 'العمر:' : 'Age:'} ${document.getElementById('age').value || ''}`,
+    `${currentLanguage === 'ar' ? 'التشخيص:' : 'Diagnosis:'} ${document.getElementById('diagnosis').value || ''}`
+  ];
+  
+  // Split into two columns
+  const midX = pageWidth / 2;
+  patientDetails.forEach((detail, index) => {
+    const xPos = index < 2 ? margin + 10 : midX;
+    const yOffset = index < 2 ? yPos + 15 + (index * 5) : yPos + 15 + ((index - 2) * 5);
+    doc.text(detail, xPos, yOffset);
+  });
+  
+  yPos += 30;
+  
+  // ISBAR Sections
+  const sections = [
+    {
+      title: "I - " + (currentLanguage === 'ar' ? "الهوية" : "IDENTIFICATION"),
+      color: primaryColor,
+      data: [
+        [currentLanguage === 'ar' ? 'تاريخ القبول:' : 'Admission Date:', document.getElementById('admDate').value || ''],
+        [currentLanguage === 'ar' ? 'قادم من:' : 'Admission From:', document.getElementById('admFrom').value || ''],
+        [currentLanguage === 'ar' ? 'الطبيب المعالج:' : 'Consultant:', document.getElementById('consultant').value || '']
+      ]
+    },
+    {
+      title: "S - " + (currentLanguage === 'ar' ? "الحالة" : "SITUATION"),
+      color: secondaryColor,
+      data: [
+        [currentLanguage === 'ar' ? 'الشكاوى الحالية:' : 'Current Complaints:', document.getElementById('complaints').value || ''],
+        [currentLanguage === 'ar' ? 'الاتصالات:' : 'Connection:', document.getElementById('connection').value || ''],
+        [currentLanguage === 'ar' ? 'المحاليل:' : 'Infusion:', document.getElementById('infusion').value || ''],
+        [currentLanguage === 'ar' ? 'الحمية:' : 'Diet:', document.getElementById('diet').value || '']
+      ]
+    },
+    {
+      title: "B - " + (currentLanguage === 'ar' ? "الخلفية" : "BACKGROUND"),
+      color: accentOrange,
+      data: [
+        [currentLanguage === 'ar' ? 'التاريخ المرضي:' : 'History:', document.getElementById('history').value || ''],
+        [currentLanguage === 'ar' ? 'الشكوى الرئيسية:' : 'Chief Complaint:', document.getElementById('chiefComplaint').value || ''],
+        [currentLanguage === 'ar' ? 'الحساسيات:' : 'Allergy:', document.getElementById('allergy').value || ''],
+        [currentLanguage === 'ar' ? 'العزل:' : 'Isolation:', document.getElementById('isolation').value || '']
+      ]
+    },
+    {
+      title: "A - " + (currentLanguage === 'ar' ? "التقييم" : "ASSESSMENT"),
+      color: [96, 123, 143], // secondary blue
+      data: [
+        [currentLanguage === 'ar' ? 'مقياس غلاسكو:' : 'GCS:', document.getElementById('gcs').value || ''],
+        [currentLanguage === 'ar' ? 'خطر السقوط:' : 'Fall Risk:', document.getElementById('fallRisk').value || ''],
+        [currentLanguage === 'ar' ? 'التنفس الصناعي:' : 'Ventilation:', document.getElementById('vent').value || ''],
+        [currentLanguage === 'ar' ? 'قرحة الفراش:' : 'Bed Sore:', document.getElementById('bedsore').value || ''],
+        [currentLanguage === 'ar' ? 'التقييد البدني:' : 'Restraint:', document.getElementById('restraint').value || ''],
+        [currentLanguage === 'ar' ? 'الملاحظات الهامة:' : 'Significant Findings:', document.getElementById('findings').value || '']
+      ]
+    },
+    {
+      title: "R - " + (currentLanguage === 'ar' ? "التوصيات" : "RECOMMENDATION"),
+      color: accentYellow,
+      textColor: [40, 40, 40],
+      data: [
+        [currentLanguage === 'ar' ? 'خطة الرعاية:' : 'Plan of Care:', document.getElementById('plan').value || ''],
+        [currentLanguage === 'ar' ? 'أوامر الطبيب:' : 'Physician Orders:', document.getElementById('orders').value || ''],
+        [currentLanguage === 'ar' ? 'المزارع والحساسية:' : 'Cultures & Sensitivity:', document.getElementById('cultures').value || ''],
+        [currentLanguage === 'ar' ? 'الاستشارات:' : 'Consultation:', document.getElementById('consult').value || ''],
+        [currentLanguage === 'ar' ? 'المخاطر:' : 'Risks:', document.getElementById('risks').value || '']
+      ]
+    }
+  ];
+  
+  // Create ISBAR sections
+  sections.forEach(section => {
+    // Check for page break
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = margin;
+    }
+    
+    // Section header
+    doc.setFillColor(section.color[0], section.color[1], section.color[2]);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+    doc.setTextColor(section.textColor || [255, 255, 255]);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(section.title, margin + 10, yPos + 5.5);
+    
+    yPos += 12;
+    
+    // Section data
+    section.data.forEach(item => {
+      if (yPos > pageHeight - 20) {
+        doc.addPage();
+        yPos = margin;
+      }
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(section.color[0], section.color[1], section.color[2]);
+      doc.text(item[0], margin + 5, yPos);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // Split long text into multiple lines
+      const text = item[1] || '';
+      const maxWidth = pageWidth - margin - 60;
+      const lines = doc.splitTextToSize(text, maxWidth);
+      
+      if (lines.length > 1) {
+        lines.forEach((line, index) => {
+          doc.text(line, margin + 40, yPos + (index * 5));
+        });
+        yPos += (lines.length * 5) + 3;
+      } else {
+        doc.text(text, margin + 40, yPos);
+        yPos += 8;
+      }
+    });
+    
+    yPos += 5;
+  });
+  
+  // Check for page break before medications
+  if (yPos > pageHeight - 80) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // Medications Section
+  if (medications.length > 0) {
+    // Medications header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(currentLanguage === 'ar' ? "الأدوية الحالية" : "CURRENT MEDICATIONS", margin + 10, yPos + 5.5);
+    
+    yPos += 12;
+    
+    // Medications table
+    const headers = currentLanguage === 'ar' 
+      ? ['اسم الدواء', 'الجرعة', 'التكرار', 'طريقة الإعطاء']
+      : ['Medication Name', 'Dosage', 'Frequency', 'Route'];
+    
+    const medRows = medications.map(med => [
+      med.name,
+      med.dosage,
+      med.frequency,
+      med.route
+    ]);
+    
+    doc.autoTable({
+      startY: yPos,
+      head: [headers],
+      body: medRows,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: primaryColor, 
+        textColor: [255, 255, 255], 
+        fontSize: 10,
+        fontStyle: 'bold',
+        halign: currentLanguage === 'ar' ? 'right' : 'left'
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 3,
+        textColor: [0, 0, 0],
+        halign: currentLanguage === 'ar' ? 'right' : 'left'
+      },
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        0: { cellWidth: 45 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 30 }
+      }
+    });
+    
+    yPos = doc.lastAutoTable.finalY + 10;
+    
+    // Check for page break before notes
+    if (yPos > pageHeight - 50) {
+      doc.addPage();
+      yPos = margin;
+    }
+    
+    // Medication notes if any
+    const medsWithNotes = medications.filter(med => med.notes && med.notes.trim() !== '');
+    if (medsWithNotes.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...primaryColor);
+      doc.text(currentLanguage === 'ar' ? "ملاحظات على الأدوية:" : "Medication Notes:", margin, yPos);
+      yPos += 8;
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      medsWithNotes.forEach((med, index) => {
+        if (yPos > pageHeight - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+        
+        const noteText = `${med.name}: ${med.notes}`;
+        const lines = doc.splitTextToSize(noteText, pageWidth - 2 * margin);
+        
+        lines.forEach((line, lineIndex) => {
+          doc.text(line, margin + 5, yPos + (lineIndex * 5));
+        });
+        
+        yPos += (lines.length * 5) + 5;
+      });
+    }
+  }
+  
+  // Check for page break before signature
+  if (yPos > pageHeight - 40) {
+    doc.addPage();
+    yPos = margin;
+  }
+  
+  // Signature Section
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'اسم الممرض المسلم:' : 'Handover Nurse Name:', margin, yPos);
+  doc.setFont('helvetica', 'normal');
+  doc.text(signature, margin + 50, yPos);
+  
+  doc.setFont('helvetica', 'bold');
+  doc.text(currentLanguage === 'ar' ? 'التاريخ والوقت:' : 'Date & Time:', margin, yPos + 8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(new Date().toLocaleString(currentLanguage === 'ar' ? 'ar-EG' : 'en-US'), margin + 50, yPos + 8);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("ISBAR Comprehensive Report - " + (currentLanguage === 'ar' ? "تقرير طبي شامل" : "Comprehensive Medical Report"), pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text(`Page ${doc.internal.getNumberOfPages()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+  
+  // Save PDF
+  const fileName = `Comprehensive_${ptName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(fileName);
+}
+
+// Clear form
 function clearForm() {
-  if (confirm('مسح جميع البيانات الحالية؟')) {
-    document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+  if (confirm(currentLanguage === 'ar' ? 'مسح جميع البيانات الحالية؟' : 'Clear all current data?')) {
+    // Clear all inputs and textareas
+    document.querySelectorAll('input, textarea').forEach(el => {
+      if (el.id !== 'searchPatient') {
+        el.value = '';
+      }
+    });
+    
+    // Clear all medications
+    document.querySelectorAll('.medication-item').forEach(item => item.remove());
+    document.getElementById('noMedicationsMessage').style.display = 'block';
+    medicationCounter = 0;
+    
+    // Reset date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('admDate').value = today;
+    
+    // Reset signature
+    document.getElementById('nurseSignature').value = 'MR. ';
   }
 }
 
-// تحميل القائمة عند فتح الصفحة
-loadPatients();
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Set today's date as default admission date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('admDate').value = today;
+  
+  // Load patients
+  loadPatients();
+  
+  // Set up search
+  document.getElementById('searchPatient').addEventListener('input', function(e) {
+    loadPatients(e.target.value);
+  });
+  
+  // Initialize with Arabic language
+  switchLanguage('ar');
+});
 </script>
 </body>
 </html>
